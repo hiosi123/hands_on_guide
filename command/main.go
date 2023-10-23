@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ func validateArgs(c config) error {
 	return nil
 }
 
+// TODO - 이전에 정의한 parseArgs() 함수 사
 func parseArgs(args []string) (config, error) {
 	var numTimes int
 	var err error
@@ -52,8 +54,64 @@ func parseArgs(args []string) (config, error) {
 	return c, nil
 }
 
-// TODO - 이전에 정의한 parseArgs() 함수 사
+func getName(r io.Reader, w io.Writer) (string, error) {
+	msg := "Your name please?  Press the Enter key when done. \n"
+	fmt.Fprintf(w, msg)
+	scanner := bufio.NewScanner(r)
+	scanner.Scan()
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+	name := scanner.Text()
+	if len(name) == 0 {
+		return "", errors.New("You didn't enter your name")
+	}
+	return name, nil
+}
+
+func greetUser(c config, name string, w io.Writer) {
+	msg := fmt.Sprintf("Nice to meet you %s\n", name)
+	for i := 0; i < c.numTimes; i++ {
+		fmt.Fprintf(w, msg)
+	}
+}
+
+func runCmd(r io.Reader, w io.Writer, c config) error {
+	if c.printUsage {
+		printUsage(w)
+		return nil
+	}
+
+	name, err := getName(r, w)
+	if err != nil {
+		return err
+	}
+
+	greetUser(c, name, w)
+	return nil
+}
 
 func main() {
+	c, err := parseArgs(os.Args[1:])
+	fmt.Println(os.Args[0:])
+	fmt.Println(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stdout, err)
+		printUsage(os.Stdout)
+		os.Exit(1)
+	}
+
+	err = validateArgs(c)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, err)
+		printUsage(os.Stdout)
+		os.Exit(1)
+	}
+
+	err = runCmd(os.Stdin, os.Stdout, c)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, err)
+		os.Exit(1)
+	}
 
 }
